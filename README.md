@@ -1,16 +1,15 @@
-# water_mark
+# 水印应用
 
-A new Flutter project.
+一个用于为图片添加自定义水印的 MacOS 应用，显示 EXIF 元数据和品牌 Logo。
 
-## Getting Started
+## 主要功能
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **EXIF 信息水印**: 自动检测并显示图片的 EXIF 数据，包括制造商、型号、镜头型号、焦距、曝光时间、ISO、光圈值等。
+- **动态字体大小**: 字体大小会根据图片宽度动态调整，确保在不同分辨率图片上显示效果良好。
+- **自定义文本样式**: 可自定义 EXIF 文本的字体、颜色和对齐方式。
+- **品牌 Logo 支持**:
+  - 自动识别索尼 (SONY)、佳能 (CANON)、尼康 (NIKON) 品牌的图片，并自动添加对应 Logo。
+  - 支持用户选择自定义 PNG 格式的 Logo。
+  - Logo 大小可调整，并自动适应水印区域。
+- **水印区域控制**: 可调整水印背景区域的高度和透明度。
+- **图片导出**: 支持将带有水印的图片导出为 JPEG 或 PNG 格式。
