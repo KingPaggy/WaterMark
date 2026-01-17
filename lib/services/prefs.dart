@@ -11,6 +11,7 @@ class AppPrefs {
   static const _exifKeysKey = 'exifKeys';
   static const _authorKey = 'author';
   static const _logoPathKey = 'logoPath';
+  static const _logoHeightFactorKey = 'logoHeightFactor';
 
   static Future<void> save(Map<String, dynamic> v) async {
     final sp = await SharedPreferences.getInstance();
@@ -23,6 +24,7 @@ class AppPrefs {
     await sp.setStringList(_exifKeysKey, (v['exifKeys'] as List<String>));
     await sp.setString(_authorKey, (v['author'] as String));
     await sp.setString(_logoPathKey, (v['logoPath'] as String? ?? ''));
+    await sp.setDouble(_logoHeightFactorKey, (v['logoHeightFactor'] as double? ?? (2.0 / 3.0)));
   }
 
   static Future<Map<String, dynamic>> load() async {
@@ -40,6 +42,7 @@ class AppPrefs {
       'exifKeys': sp.getStringList(_exifKeysKey) ?? defaultExifKeys,
       'author': sp.getString(_authorKey) ?? '',
       'logoPath': sp.getString(_logoPathKey) ?? '',
+      'logoHeightFactor': sp.getDouble(_logoHeightFactorKey) ?? (2.0 / 3.0),
     };
   }
 }

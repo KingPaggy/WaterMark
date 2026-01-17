@@ -14,6 +14,8 @@ class PreviewPainter extends CustomPainter {
   final double opacity;
   final ui.Image? logo;
   final String author;
+  final double logoHeightFactor;
+  final double logoWidthFactor;
   PreviewPainter({
     required this.image,
     required this.exifMap,
@@ -26,6 +28,8 @@ class PreviewPainter extends CustomPainter {
     required this.opacity,
     this.logo,
     this.author = '',
+    required this.logoHeightFactor,
+    required this.logoWidthFactor,
   });
   @override
   void paint(Canvas canvas, Size size) {
@@ -59,17 +63,21 @@ class PreviewPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawRect(bgRect, bgPaint);
 
-    final leftW = bgRect.height.clamp(0, bgRect.width * 0.3);
+    final leftW = bgRect.height.clamp(0, bgRect.width * logoWidthFactor);
     if (logo != null) {
       final lw = leftW.toDouble();
-      final maxSide = lw * 0.8;
       final lW = logo!.width.toDouble();
       final lH = logo!.height.toDouble();
-      final ls = (maxSide / lW).clamp(0.0, double.infinity);
-      final lsH = (maxSide / lH).clamp(0.0, double.infinity);
-      final lscale = lsH < ls ? lsH : ls;
-      final dw = lW * lscale;
-      final dh = lH * lscale;
+      final desiredH = bgRect.height * logoHeightFactor;
+      var scale = (desiredH / lH).clamp(0.0, double.infinity);
+      var dw = lW * scale;
+      var dh = lH * scale;
+      final maxW = lw * 0.95;
+      if (dw > maxW) {
+        scale = (maxW / lW).clamp(0.0, double.infinity);
+        dw = lW * scale;
+        dh = lH * scale;
+      }
       final ldx = bgRect.left + (lw - dw) / 2;
       final ldy = bgRect.top + (bgRect.height - dh) / 2;
       final ldest = Rect.fromLTWH(ldx, ldy, dw, dh);
@@ -137,6 +145,8 @@ class PreviewPainter extends CustomPainter {
         oldDelegate.fontColor != fontColor ||
         oldDelegate.alignment != alignment ||
         oldDelegate.opacity != opacity ||
+        oldDelegate.logoHeightFactor != logoHeightFactor ||
+        oldDelegate.logoWidthFactor != logoWidthFactor ||
         oldDelegate.exifMap != exifMap ||
         oldDelegate.exifKeys != exifKeys ||
         oldDelegate.image != image;

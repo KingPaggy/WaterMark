@@ -47,14 +47,14 @@ class ExifUtils {
   }
 
   static Map<String, String> twoLines(Map<String, String> exif) {
-    final make = pick(exif, ['Make']);
+    // final make = pick(exif, ['Make']);
     final model = pick(exif, ['Model']);
     final lens = pick(exif, ['LensModel']);
     final focal = formatFocal(pick(exif, ['FocalLength']));
     final expTime = pick(exif, ['ExposureTime']);
     final iso = formatISO(pick(exif, ['ISOSpeedRatings', 'ISOSpeedRating']));
     final fnum = formatFNumber(pick(exif, ['FNumber']));
-    final topParts = [make, model, lens]
+    final topParts = [model, lens]
         .where((e) => e != null && e.isNotEmpty)
         .cast<String>()
         .toList();

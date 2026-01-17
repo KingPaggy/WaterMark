@@ -44,11 +44,13 @@ class _EditorScreenState extends State<EditorScreen> {
   String author = '';
   ui.Image? logoImage;
   String? logoPath;
+  double logoHeightFactor = 2.0 / 3.0;
+  double logoWidthFactor = 0.3;
 
   bool loading = false;
 
-  double _minFontForWidth(int w) => w / 3000.0;
-  double _maxFontForWidth(int w) => w / 30.0;
+  double _minFontByWidth(int w) => w / 120.0;
+  double _maxFontByWidth(int w) => w / 40.0;
 
   @override
   void initState() {
@@ -64,6 +66,8 @@ class _EditorScreenState extends State<EditorScreen> {
     author = (p0['author'] as String? ?? '');
     final lp = (p0['logoPath'] as String? ?? '');
     logoPath = lp.isEmpty ? null : lp;
+    logoHeightFactor = (p0['logoHeightFactor'] as double?) ?? (2.0 / 3.0);
+    logoWidthFactor = (p0['logoWidthFactor'] as double?) ?? (0.3);
     if (logoPath != null) {
       _loadLogo(logoPath!);
     }
@@ -83,9 +87,9 @@ class _EditorScreenState extends State<EditorScreen> {
         exifMap = exifData;
         if (uiImage != null) {
           final w = uiImage!.width;
-          final minF = _minFontForWidth(w);
-          final maxF = _maxFontForWidth(w);
-          fontSize = fontSize.clamp(minF, maxF);
+          final minF = _minFontByWidth(w);
+          final maxF = _maxFontByWidth(w);
+          fontSize = (w / 100.0).clamp(minF, maxF);
         }
       });
       final maker = exifData['Make'] ?? '';
@@ -117,7 +121,9 @@ class _EditorScreenState extends State<EditorScreen> {
     final decoded = img.decodeImage(bytes);
     if (decoded != null) {
       final rgba = decoded.getBytes(order: img.ChannelOrder.rgba);
-      final buffer = await ui.ImmutableBuffer.fromUint8List(Uint8List.fromList(rgba));
+      final buffer = await ui.ImmutableBuffer.fromUint8List(
+        Uint8List.fromList(rgba),
+      );
       final desc = ui.ImageDescriptor.raw(
         buffer,
         width: decoded.width,
@@ -177,6 +183,8 @@ class _EditorScreenState extends State<EditorScreen> {
       'exifKeys': exifKeys,
       'author': author,
       'logoPath': logoPath,
+      'logoHeightFactor': logoHeightFactor,
+      'logoWidthFactor': logoWidthFactor,
     });
   }
 
@@ -222,6 +230,8 @@ class _EditorScreenState extends State<EditorScreen> {
                               opacity: opacity,
                               logo: logoImage,
                               author: author,
+                              logoHeightFactor: logoHeightFactor,
+                              logoWidthFactor: logoWidthFactor,
                             ),
                           ),
                         );
@@ -235,7 +245,7 @@ class _EditorScreenState extends State<EditorScreen> {
               border: Border(left: BorderSide(color: Colors.grey.shade300)),
             ),
             child: _configPanel(),
-          )
+          ),
         ],
       ),
       bottomNavigationBar: _footerBar(),
@@ -287,7 +297,10 @@ class _EditorScreenState extends State<EditorScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('EXIF 信息水印配置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text(
+          'EXIF 信息水印配置',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 12),
         TextFormField(
           initialValue: author,
@@ -295,60 +308,102 @@ class _EditorScreenState extends State<EditorScreen> {
           onChanged: (v) => setState(() => author = v),
         ),
         const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: Text(logoPath ?? '未选择 PNG Logo')),
-          TextButton(
-            onPressed: () async {
-              final file = await fsel.openFile(
-                acceptedTypeGroups: const [fsel.XTypeGroup(extensions: ['png'])],
-              );
-              if (file != null) {
-                logoPath = file.path;
-                await _loadLogo(file.path);
-              }
-            },
-            child: const Text('选择 PNG Logo'),
-          ),
-        ]),
+        Row(
+          children: [
+            Expanded(child: Text(logoPath ?? '未选择 PNG Logo')),
+            TextButton(
+              onPressed: () async {
+                final file = await fsel.openFile(
+                  acceptedTypeGroups: const [
+                    fsel.XTypeGroup(extensions: ['png']),
+                  ],
+                );
+                if (file != null) {
+                  logoPath = file.path;
+                  await _loadLogo(file.path);
+                }
+              },
+              child: const Text('选择 PNG Logo'),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
-        Row(children: [
-          const Text('背景高度'),
-          Expanded(
-            child: Slider(
-              value: bgHeightPercent,
-              min: 0.1,
-              max: 0.5,
-              divisions: 40,
-              label: '${(bgHeightPercent * 100).round()}%',
-              onChanged: (v) => setState(() => bgHeightPercent = v),
+        Row(
+          children: [
+            const Text('背景高度'),
+            Expanded(
+              child: Slider(
+                value: bgHeightPercent,
+                min: 0.1,
+                max: 0.5,
+                divisions: 40,
+                label: '${(bgHeightPercent * 100).round()}%',
+                onChanged: (v) => setState(() => bgHeightPercent = v),
+              ),
             ),
-          ),
-        ]),
-        Row(children: [
-          const Text('透明度'),
-          Expanded(
-            child: Slider(
-              value: opacity,
-              min: 0.2,
-              max: 1.0,
-              divisions: 40,
-              label: '${(opacity * 100).round()}%',
-              onChanged: (v) => setState(() => opacity = v),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('Logo 宽度'),
+            Expanded(
+              child: Slider(
+                value: logoWidthFactor,
+                min: 0.01,
+                max: 1.0,
+                divisions: 80,
+                label:
+                    '${(logoWidthFactor * 100).round()}%',
+                onChanged: (v) => setState(() => logoWidthFactor = v),
+              ),
             ),
-          ),
-        ]),
-        Row(children: [
-          const Text('字体大小'),
-          Expanded(
-            child: Slider(
-              value: fontSize,
-              min: uiImage != null ? _minFontForWidth(uiImage!.width) : 12,
-              max: uiImage != null ? _maxFontForWidth(uiImage!.width) : 36,
-              label: fontSize.toStringAsFixed(1),
-              onChanged: (v) => setState(() => fontSize = v),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('Logo 高度'),
+            Expanded(
+              child: Slider(
+                value: logoHeightFactor,
+                min: 0.01,
+                max: 1.0,
+                divisions: 80,
+                label:
+                    '${(logoHeightFactor * 100).round()}%',
+                onChanged: (v) => setState(() => logoHeightFactor = v),
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('透明度'),
+            Expanded(
+              child: Slider(
+                value: opacity,
+                min: 0.2,
+                max: 1.0,
+                divisions: 40,
+                label: '${(opacity * 100).round()}%',
+                onChanged: (v) => setState(() => opacity = v),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            const Text('字体大小'),
+            Expanded(
+              child: Slider(
+                value: fontSize,
+                min: uiImage != null ? _minFontByWidth(uiImage!.width) : 12,
+                max: uiImage != null ? _maxFontByWidth(uiImage!.width) : 3600,
+                label: fontSize.toStringAsFixed(1),
+                onChanged: (v) => setState(() => fontSize = v),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           initialValue: fontFamily,
@@ -362,15 +417,17 @@ class _EditorScreenState extends State<EditorScreen> {
           onChanged: (v) => setState(() => fontFamily = v ?? 'System'),
         ),
         const SizedBox(height: 8),
-        Row(children: [
-          const Text('文字颜色'),
-          const SizedBox(width: 12),
-          _colorDot(Colors.black),
-          _colorDot(Colors.white),
-          _colorDot(Colors.blueGrey),
-          _colorDot(Colors.redAccent),
-          _colorDot(Colors.green),
-        ]),
+        Row(
+          children: [
+            const Text('文字颜色'),
+            const SizedBox(width: 12),
+            _colorDot(Colors.black),
+            _colorDot(Colors.white),
+            _colorDot(Colors.blueGrey),
+            _colorDot(Colors.redAccent),
+            _colorDot(Colors.green),
+          ],
+        ),
         const SizedBox(height: 8),
         DropdownButtonFormField<TextAlign>(
           initialValue: alignment,
@@ -411,9 +468,9 @@ class _EditorScreenState extends State<EditorScreen> {
           onPressed: () async {
             await _savePrefs();
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('设置已保存')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('设置已保存')));
           },
           icon: const Icon(Icons.check),
           label: const Text('应用水印'),
@@ -448,39 +505,49 @@ class _EditorScreenState extends State<EditorScreen> {
         double quality = 90;
         return AlertDialog(
           title: const Text('导出选项'),
-          content: StatefulBuilder(builder: (ctx, setS) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: fmt,
-                  items: const [
-                    DropdownMenuItem(value: 'jpeg', child: Text('JPEG')),
-                    DropdownMenuItem(value: 'png', child: Text('PNG')),
-                  ],
-                  onChanged: (v) => setS(() => fmt = v ?? 'jpeg'),
-                  decoration: const InputDecoration(labelText: '格式'),
-                ),
-                if (fmt == 'jpeg')
-                  Row(children: [
-                    const Text('质量'),
-                    Expanded(
-                      child: Slider(
-                        value: quality,
-                        min: 50,
-                        max: 100,
-                        divisions: 50,
-                        label: quality.toStringAsFixed(0),
-                        onChanged: (v) => setS(() => quality = v),
-                      ),
+          content: StatefulBuilder(
+            builder: (ctx, setS) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: fmt,
+                    items: const [
+                      DropdownMenuItem(value: 'jpeg', child: Text('JPEG')),
+                      DropdownMenuItem(value: 'png', child: Text('PNG')),
+                    ],
+                    onChanged: (v) => setS(() => fmt = v ?? 'jpeg'),
+                    decoration: const InputDecoration(labelText: '格式'),
+                  ),
+                  if (fmt == 'jpeg')
+                    Row(
+                      children: [
+                        const Text('质量'),
+                        Expanded(
+                          child: Slider(
+                            value: quality,
+                            min: 50,
+                            max: 100,
+                            divisions: 50,
+                            label: quality.toStringAsFixed(0),
+                            onChanged: (v) => setS(() => quality = v),
+                          ),
+                        ),
+                      ],
                     ),
-                  ]),
-              ],
-            );
-          }),
+                ],
+              );
+            },
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, fmt), child: const Text('导出')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, fmt),
+              child: const Text('导出'),
+            ),
           ],
         );
       },
@@ -493,12 +560,16 @@ class _EditorScreenState extends State<EditorScreen> {
     if (uiImage == null || imageBytes == null) return;
     final composed = await _compose(uiImage!, exifMap);
     if (format == 'png') {
-      final pngBytes = await composed.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = await composed.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       if (pngBytes == null) return;
       final name = p.setExtension(p.basename(widget.files[index].path), '.png');
       final loc = await fsel.getSaveLocation(
         suggestedName: name,
-        acceptedTypeGroups: [const fsel.XTypeGroup(extensions: ['png'])],
+        acceptedTypeGroups: [
+          const fsel.XTypeGroup(extensions: ['png']),
+        ],
       );
       if (loc == null) return;
       final png = Uint8List.view(
@@ -506,16 +577,16 @@ class _EditorScreenState extends State<EditorScreen> {
         pngBytes.offsetInBytes,
         pngBytes.lengthInBytes,
       );
-      final xf = fsel.XFile.fromData(
-        png,
-        name: name,
-        mimeType: 'image/png',
-      );
+      final xf = fsel.XFile.fromData(png, name: name, mimeType: 'image/png');
       await xf.saveTo(loc.path);
     } else {
       final raw = await composed.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (raw == null) return;
-      final rgba = Uint8List.view(raw.buffer, raw.offsetInBytes, raw.lengthInBytes);
+      final rgba = Uint8List.view(
+        raw.buffer,
+        raw.offsetInBytes,
+        raw.lengthInBytes,
+      );
       final im = img.Image.fromBytes(
         width: composed.width,
         height: composed.height,
@@ -536,7 +607,9 @@ class _EditorScreenState extends State<EditorScreen> {
       final name = p.setExtension(p.basename(widget.files[index].path), '.jpg');
       final loc = await fsel.getSaveLocation(
         suggestedName: name,
-        acceptedTypeGroups: [const fsel.XTypeGroup(extensions: ['jpg', 'jpeg'])],
+        acceptedTypeGroups: [
+          const fsel.XTypeGroup(extensions: ['jpg', 'jpeg']),
+        ],
       );
       if (loc == null) return;
       final xf = fsel.XFile.fromData(
@@ -547,7 +620,9 @@ class _EditorScreenState extends State<EditorScreen> {
       await xf.saveTo(loc.path);
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('已保存')));
   }
 
   Future<ui.Image> _compose(ui.Image base, Map<String, String> exifVals) async {
@@ -568,17 +643,23 @@ class _EditorScreenState extends State<EditorScreen> {
     if (logoImage != null) {
       final lW = logoImage!.width.toDouble();
       final lH = logoImage!.height.toDouble();
-      final maxSide = leftW.toDouble() * 0.8;
-      final ls = (maxSide / lW).clamp(0.0, double.infinity);
-      final lsH = (maxSide / lH).clamp(0.0, double.infinity);
-      final scale = lsH < ls ? lsH : ls;
-      final dw = lW * scale;
-      final dh = lH * scale;
+      final desiredH = bgH * logoHeightFactor;
+      var scale = (desiredH / lH).clamp(0.0, double.infinity);
+      var dw = lW * scale;
+      var dh = lH * scale;
+      final maxW = leftW.toDouble() * 0.95;
+      if (dw > maxW) {
+        scale = (maxW / lW).clamp(0.0, double.infinity);
+        dw = lW * scale;
+        dh = lH * scale;
+      }
       final ldx = bgRect.left + (leftW.toDouble() - dw) / 2;
       final ldy = bgRect.top + (bgH - dh) / 2;
       final ldest = Rect.fromLTWH(ldx, ldy, dw, dh);
       final lsrc = Rect.fromLTWH(0, 0, lW, lH);
-      final lpaint = Paint()..filterQuality = FilterQuality.high..isAntiAlias = true;
+      final lpaint = Paint()
+        ..filterQuality = FilterQuality.high
+        ..isAntiAlias = true;
       canvas.drawImageRect(logoImage!, lsrc, ldest, lpaint);
     }
 
@@ -602,6 +683,7 @@ class _EditorScreenState extends State<EditorScreen> {
       p.layout(ui.ParagraphConstraints(width: width));
       return p;
     }
+
     final topP = buildPara(topText, rightW - 40);
     final botP = buildPara(bottomText, rightW - 40);
     final midY = h + bgH / 2;
