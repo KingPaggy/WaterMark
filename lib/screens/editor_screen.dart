@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:exif/exif.dart' as exif;
 import 'package:file_selector/file_selector.dart' as fsel;
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -80,7 +79,7 @@ class _EditorScreenState extends State<EditorScreen> {
       final f = widget.files[index];
       final bytes = await f.readAsBytes();
       final imgObj = await decodeImage(bytes);
-      final exifData = await readExif(bytes);
+      final exifData = await ExifUtils.readExif(bytes);
       setState(() {
         imageBytes = bytes;
         uiImage = imgObj;
@@ -151,25 +150,6 @@ class _EditorScreenState extends State<EditorScreen> {
       final img0 = await c.future;
       setState(() => logoImage = img0);
     } catch (_) {}
-  }
-
-  Future<Map<String, String>> readExif(Uint8List bytes) async {
-    try {
-      final data = await exif.readExifFromBytes(bytes);
-      final Map<String, String> out = {};
-      for (final entry in data.entries) {
-        final key = entry.key;
-        final val = entry.value.printable;
-        final parts = key.split(' ');
-        final canonical = parts.isNotEmpty ? parts.last : key;
-        if (val.isNotEmpty && !out.containsKey(canonical)) {
-          out[canonical] = val;
-        }
-      }
-      return out;
-    } catch (_) {
-      return {};
-    }
   }
 
   Future<void> _savePrefs() async {
@@ -352,8 +332,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 min: 0.01,
                 max: 1.0,
                 divisions: 80,
-                label:
-                    '${(logoWidthFactor * 100).round()}%',
+                label: '${(logoWidthFactor * 100).round()}%',
                 onChanged: (v) => setState(() => logoWidthFactor = v),
               ),
             ),
@@ -368,8 +347,7 @@ class _EditorScreenState extends State<EditorScreen> {
                 min: 0.01,
                 max: 1.0,
                 divisions: 80,
-                label:
-                    '${(logoHeightFactor * 100).round()}%',
+                label: '${(logoHeightFactor * 100).round()}%',
                 onChanged: (v) => setState(() => logoHeightFactor = v),
               ),
             ),

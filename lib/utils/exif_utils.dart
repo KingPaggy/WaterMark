@@ -1,6 +1,29 @@
 import 'dart:core';
+import 'dart:typed_data';
+import 'package:exif/exif.dart';
 
 class ExifUtils {
+  static Future<Map<String, String>> readExif(Uint8List bytes) async {
+    try {
+      final data = await readExifFromBytes(bytes);
+      final Map<String, String> out = {};
+      for (final entry in data.entries) {
+        final key = entry.key;
+        final val = entry.value.printable;
+        // Simplify keys: 'Image Model' -> 'Model'
+        final parts = key.split(' ');
+        final canonical = parts.isNotEmpty ? parts.last : key;
+        if (val.isNotEmpty && !out.containsKey(canonical)) {
+          out[canonical] = val;
+        }
+      }
+      return out;
+    } catch (e) {
+      // ignore error
+      return {};
+    }
+  }
+
   static String? pick(Map<String, String> exif, List<String> keys) {
     for (final k in keys) {
       final v = exif[k];
@@ -54,17 +77,16 @@ class ExifUtils {
     final expTime = pick(exif, ['ExposureTime']);
     final iso = formatISO(pick(exif, ['ISOSpeedRatings', 'ISOSpeedRating']));
     final fnum = formatFNumber(pick(exif, ['FNumber']));
-    final topParts = [model, lens]
-        .where((e) => e != null && e.isNotEmpty)
-        .cast<String>()
-        .toList();
-    final bottomParts = [focal, expTime ?? '', iso, fnum]
-        .where((e) => e.isNotEmpty)
-        .toList();
-    return {
-      'top': topParts.join(' • '),
-      'bottom': bottomParts.join(' • '),
-    };
+    final topParts = [
+      model,
+      lens,
+    ].where((e) => e != null && e.isNotEmpty).cast<String>().toList();
+    final bottomParts = [
+      focal,
+      expTime ?? '',
+      iso,
+      fnum,
+    ].where((e) => e.isNotEmpty).toList();
+    return {'top': topParts.join(' • '), 'bottom': bottomParts.join(' • ')};
   }
 }
-
